@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鐵路巡檢回報系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen p-4">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
+        <h1 class="text-xl font-bold text-center text-blue-600 mb-6">鐵路巡檢回報系統</h1>
+        
+        <!-- 分駐所選擇 -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">分駐所</label>
+            <select id="substationSelect" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="">請選擇分駐所</option>
+                <option value="雙溪所">雙溪所</option>
+                <option value="礁溪所">礁溪所</option>
+                <option value="蘇新所">蘇新所</option>
+                <option value="和平所">和平所</option>
+            </select>
+        </div>
+
+        <!-- 站點區間多選 -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">起迄站點（可複選，自動串接）</label>
+            <div id="stationsContainer" class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50 text-sm">
+                <span class="text-gray-400">請先選擇分駐所</span>
+            </div>
+        </div>
+
+        <!-- 路線多選 -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">路線（可複選）</label>
+            <div class="flex gap-4 p-2 border border-gray-300 rounded-lg bg-gray-50">
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="route" value="東線" class="route-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">東線</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="route" value="西線" class="route-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <span class="ml-2 text-sm text-gray-700">西線</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- 檢查項目 -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">檢查項目</label>
+            <input type="text" id="checkItem" value="電車線檢查" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <!-- 狀況 -->
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-1">狀況</label>
+            <input type="text" id="status" value="OK" readonly class="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-bold">
+        </div>
+
+        <!-- 預覽區 -->
+        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h2 class="text-sm font-semibold text-blue-800 mb-2">訊息預覽：</h2>
+            <div id="previewText" class="text-sm text-gray-700 whitespace-pre-line font-mono bg-white p-3 rounded border border-blue-100">
+                請完整填寫上方欄位...
+            </div>
+        </div>
+
+        <!-- 按鈕 -->
+        <div class="flex gap-3">
+            <button id="sendBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg shadow transition duration-200 text-center">
+                傳送到 LINE 群組
+            </button>
+            <button id="copyBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition duration-200 text-center">
+                複製文字
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 轄區站點對應資料
+        const stationData = {
+            "雙溪所": ["八堵", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南1"],
+            "礁溪所": ["草嶺南2", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P1"],
+            "蘇新所": ["羅東S/P2", "羅東", "冬山", "蘇澳新", "蘇澳", "永樂", "東澳", "南澳", "武塔S/P1"],
+            "和平所": ["武塔S/P2", "漢本", "和平", "和仁", "崇德", "崇德S/P1"]
+        };
+
+        const substationSelect = document.getElementById('substationSelect');
+        const stationsContainer = document.getElementById('stationsContainer');
+        const checkItemInput = document.getElementById('checkItem');
+        const previewTextDiv = document.getElementById('previewText');
+        const sendBtn = document.getElementById('sendBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const routeCheckboxes = document.querySelectorAll('.route-checkbox');
+
+        let liffId = "YOUR_LIFF_ID"; // 請替換成您的 LIFF ID
+
+        // 初始化 LIFF
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: liffId });
+            } catch (error) {
+                console.log('LIFF Initialization failed. Standard copy mode will be used.', error);
+            }
+        }
+        initializeLiff();
+
+        // 當分駐所改變時，重新產生站點核取方框
+        substationSelect.addEventListener('change', function() {
+            const selectedSubstation = this.value;
+            stationsContainer.innerHTML = '';
+
+            if (!selectedSubstation || !stationData[selectedSubstation]) {
+                stationsContainer.innerHTML = '<span class="text-gray-400">請先選擇分駐所</span>';
+                updatePreview();
+                return;
+            }
+
+            stationData[selectedSubstation].forEach(station => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center space-x-2 py-1 cursor-pointer hover:bg-gray-100 px-1 rounded';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'station';
+                checkbox.value = station;
+                checkbox.className = 'station-checkbox h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+                checkbox.addEventListener('change', updatePreview);
+
+                const span = document.createElement('span');
+                span.textContent = station;
+
+                label.appendChild(checkbox);
+                label.appendChild(span);
+                stationsContainer.appendChild(label);
+            });
+
+            updatePreview();
+        });
+
+        // 監聽路線與檢查項目變動
+        routeCheckboxes.forEach(cb => cb.addEventListener('change', updatePreview));
+        checkItemInput.addEventListener('input', updatePreview);
+
+        // 產生即時預覽文字
+        function getFormattedText() {
+            const substation = substationSelect.value;
+            const checkedStations = Array.from(document.querySelectorAll('.station-checkbox:checked')).map(cb => cb.value);
+            const checkedRoutes = Array.from(document.querySelectorAll('.route-checkbox:checked')).map(cb => cb.value);
+            const checkItem = checkItemInput.value.trim();
+            const status = document.getElementById('status').value;
+
+            if (!substation || checkedStations.length === 0 || checkedRoutes.length === 0) {
+                return "請完整選擇分駐所、起迄站點與路線...";
+            }
+
+            const stationString = checkedStations.join('~');
+            const routeString = checkedRoutes.join('、');
+
+            return `${stationString} ${routeString} ${checkItem}${status}`;
+        }
+
+        function updatePreview() {
+            previewTextDiv.textContent = getFormattedText();
+        }
+
+        // 發送到 LINE 群組
+        sendBtn.addEventListener('click', async function() {
+            const text = getFormattedText();
+            if (text.startsWith("請完整")) {
+                alert("請完整填寫所有必要欄位（分駐所、起迄站點、路線）！");
+                return;
+            }
+
+            if (liff.isInClient()) {
+                if (liff.isApiAvailable('shareTargetPicker')) {
+                    try {
+                        await liff.shareTargetPicker([
+                            {
+                                type: 'text',
+                                text: text
+                            }
+                        ]);
+                        alert("訊息已成功分享！");
+                    } catch (error) {
+                        alert("分享失敗或取消: " + error);
+                    }
+                } else {
+                    alert("此版本 LINE 不支援分享目標選擇器。");
+                }
+            } else {
+                // 非 LINE 環境，執行複製剪貼簿
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("已複製回報文字到剪貼簿！可直接貼上至 LINE 群組。");
+                }).catch(err => {
+                    alert("複製失敗：" + err);
+                });
+            }
+        });
+
+        // 複製按鈕
+        copyBtn.addEventListener('click', function() {
+            const text = getFormattedText();
+            if (text.startsWith("請完整")) {
+                alert("目前沒有完整的內容可供複製！");
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert("已成功複製回報文字！");
+            }).catch(err => {
+                alert("複製失敗：" + err);
+            });
+        });
+    </script>
+</body>
+</html>
