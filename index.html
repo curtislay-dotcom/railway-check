@@ -63,12 +63,12 @@
             <textarea id="previewText" rows="5" class="w-full p-3 rounded border border-blue-200 text-sm text-gray-700 font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y" readonly placeholder="請完整填寫上方欄位..."></textarea>
         </div>
 
-        <!-- 按鈕 -->
+        <!-- 按鈕區 (調整寬度分配與排版) -->
         <div class="flex gap-3">
-            <button id="sendBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg shadow transition duration-200 text-center">
+            <button id="sendBtn" class="flex-[2] bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg shadow transition duration-200 text-center whitespace-nowrap">
                 傳送到 LINE 群組
             </button>
-            <button id="copyBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-lg transition duration-200 text-center">
+            <button id="copyBtn" class="flex-[1] bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition duration-200 text-center whitespace-nowrap">
                 複製文字
             </button>
         </div>
@@ -80,7 +80,7 @@
             "雙溪所": ["八堵0K", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南"],
             "礁溪所": ["草嶺南", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P"],
             "蘇新所": ["羅東S/P", "羅東", "冬山", "蘇澳新", "永樂", "東澳", "南澳", "武塔S/P", "蘇澳~蘇澳新"],
-            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P"]
+            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P1"]
         };
 
         const allStations = Object.values(stationData).flat();
@@ -126,7 +126,7 @@
             if (selectedVal === "值班管理") {
                 targetStations = allStations;
                 setDutyMode(true);
-                previewTextDiv.value = "(宜力段巡查匯整第  報)\n";
+                previewTextDiv.value = "(宜力後巡查匯整第  報)\n";
             } else {
                 targetStations = stationData[selectedVal] || [];
                 setDutyMode(false);
@@ -223,6 +223,7 @@
             previewTextDiv.value = currentText + "\n" + selectionStr;
 
             document.querySelectorAll('.station-checkbox:checked').forEach(cb => cb.checked = false);
+            routeCheckboxes.forEach(cb => cb.checked, false);
             routeCheckboxes.forEach(cb => cb.checked = false);
         });
 
@@ -266,8 +267,7 @@
             }
         });
 
-        // 複製按鈕
-        copyBtn.append('click', function() {}); // placeholder safety
+        // 複製按鈕功能修復
         copyBtn.addEventListener('click', function() {
             const text = previewTextDiv.value.trim();
             if (!text || text.startsWith("請完整")) {
