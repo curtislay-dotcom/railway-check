@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鐵路巡檢回報系統</title>
+    <title>電車線巡檢回報系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen p-4">
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
-        <h1 class="text-xl font-bold text-center text-blue-600 mb-6">鐵路巡檢回報系統</h1>
+        <h1 class="text-xl font-bold text-center text-blue-600 mb-6">電車線巡檢回報系統</h1>
         
         <!-- 分駐所選擇 -->
         <div class="mb-4">
@@ -82,10 +82,10 @@
     <script>
         // 各分駐所站點對應資料
         const stationData = {
-            "雙溪所": ["八堵", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南1"],
-            "礁溪所": ["草嶺南2", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P1"],
-            "蘇新所": ["羅東S/P2", "羅東", "冬山", "蘇澳新", "蘇澳", "永樂", "東澳", "南澳", "武塔S/P1"],
-            "和平所": ["武塔S/P2", "漢本", "和平", "和仁", "崇德", "崇德S/P1"]
+            "雙溪所": ["八堵0", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南"],
+            "礁溪所": ["草嶺南", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P"],
+            "蘇新所": ["羅東S/P", "羅東", "冬山", "蘇澳新", "蘇澳", "永樂", "東澳", "南澳", "武塔S/P"],
+            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P"]
         };
 
         // 彙整所有分駐所站點（用於值班管理）
