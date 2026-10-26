@@ -63,7 +63,7 @@
             <textarea id="previewText" rows="5" class="w-full p-3 rounded border border-blue-200 text-sm text-gray-700 font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y" readonly placeholder="請完整填寫上方欄位..."></textarea>
         </div>
 
-        <!-- 按鈕區 (調整寬度分配與排版) -->
+        <!-- 按鈕區 -->
         <div class="flex gap-3">
             <button id="sendBtn" class="flex-[2] bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg shadow transition duration-200 text-center whitespace-nowrap">
                 傳送到 LINE 群組
@@ -183,7 +183,7 @@
             }
         }));
 
-        // 取得當前勾選組合的字串（結尾自動附加「電車線設備OK」）
+        // 取得當前勾選組合的字串（處理路線雙選時呈現 (東、西線)）
         function getCurrentSelectionString() {
             const checkedStations = Array.from(document.querySelectorAll('.station-checkbox:checked')).map(cb => cb.value);
             const checkedRoutes = Array.from(document.querySelectorAll('.route-checkbox:checked')).map(cb => cb.value);
@@ -193,7 +193,14 @@
             }
 
             const stationString = checkedStations.join('~');
-            const routeString = checkedRoutes.join('、');
+            
+            // 路線格式化邏輯：若同時選東、西線，顯示 (東、西線)；否則顯示單一線別
+            let routeString = "";
+            if (checkedRoutes.length === 2) {
+                routeString = "(東、西線)";
+            } else {
+                routeString = checkedRoutes[0];
+            }
 
             return `${stationString} ${routeString} 電車線設備OK`;
         }
@@ -223,7 +230,6 @@
             previewTextDiv.value = currentText + "\n" + selectionStr;
 
             document.querySelectorAll('.station-checkbox:checked').forEach(cb => cb.checked = false);
-            routeCheckboxes.forEach(cb => cb.checked, false);
             routeCheckboxes.forEach(cb => cb.checked = false);
         });
 
@@ -267,7 +273,7 @@
             }
         });
 
-        // 複製按鈕功能修復
+        // 複製按鈕
         copyBtn.addEventListener('click', function() {
             const text = previewTextDiv.value.trim();
             if (!text || text.startsWith("請完整")) {
