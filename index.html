@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>電車線巡檢回報系統</title>
+    <title>鐵路巡檢回報系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen p-4">
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
-        <h1 class="text-xl font-bold text-center text-blue-600 mb-6">電車線巡檢回報系統</h1>
+        <h1 class="text-xl font-bold text-center text-blue-600 mb-6">鐵路巡檢回報系統</h1>
         
         <!-- 分駐所選擇 -->
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">分駐所</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">分駐所 / 身份選擇</label>
             <select id="substationSelect" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                <option value="">請選擇分駐所</option>
+                <option value="">請選擇分駐所或值班管理</option>
+                <option value="值班管理">⭐ 值班管理 (全轄區開放)</option>
                 <option value="雙溪所">雙溪所</option>
                 <option value="礁溪所">礁溪所</option>
                 <option value="蘇新所">蘇新所</option>
@@ -27,7 +28,7 @@
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">起迄站點（可複選，自動串接）</label>
             <div id="stationsContainer" class="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50 text-sm">
-                <span class="text-gray-400">請先選擇分駐所</span>
+                <span class="text-gray-400">請先選擇分駐所或值班管理</span>
             </div>
         </div>
 
@@ -58,12 +59,13 @@
             <input type="text" id="status" value="OK" readonly class="w-full p-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-bold">
         </div>
 
-        <!-- 預覽區 -->
+        <!-- 預覽區 (可根據選擇切換唯讀/編輯模式) -->
         <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h2 class="text-sm font-semibold text-blue-800 mb-2">訊息預覽：</h2>
-            <div id="previewText" class="text-sm text-gray-700 whitespace-pre-line font-mono bg-white p-3 rounded border border-blue-100">
-                請完整填寫上方欄位...
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-sm font-semibold text-blue-800">訊息預覽：</h2>
+                <span id="editHint" class="text-xs text-amber-600 hidden">✏️ 值班管理模式：預覽內容可自由點擊修改</span>
             </div>
+            <textarea id="previewText" rows="4" class="w-full p-3 rounded border border-blue-200 text-sm text-gray-700 font-mono bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y" readonly placeholder="請完整填寫上方欄位..."></textarea>
         </div>
 
         <!-- 按鈕 -->
@@ -78,46 +80,66 @@
     </div>
 
     <script>
-        // 轄區站點對應資料
+        // 各分駐所站點對應資料
         const stationData = {
-            "雙溪所": ["八堵 0K", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺隧道南口"],
-            "礁溪所": ["草嶺隧道南口", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P"],
-            "蘇新所": ["羅東S/P", "羅東", "冬山", "蘇澳新", "永樂", "東澳", "南澳", "武塔S/P", "蘇澳~蘇新"],
-            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P"]
+            "雙溪所": ["八堵", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南1"],
+            "礁溪所": ["草嶺南2", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P1"],
+            "蘇新所": ["羅東S/P2", "羅東", "冬山", "蘇澳新", "蘇澳", "永樂", "東澳", "南澳", "武塔S/P1"],
+            "和平所": ["武塔S/P2", "漢本", "和平", "和仁", "崇德", "崇德S/P1"]
         };
+
+        // 彙整所有分駐所站點（用於值班管理）
+        const allStations = Object.values(stationData).flat();
 
         const substationSelect = document.getElementById('substationSelect');
         const stationsContainer = document.getElementById('stationsContainer');
         const checkItemInput = document.getElementById('checkItem');
         const previewTextDiv = document.getElementById('previewText');
+        const editHint = document.getElementById('editHint');
         const sendBtn = document.getElementById('sendBtn');
         const copyBtn = document.getElementById('copyBtn');
         const routeCheckboxes = document.querySelectorAll('.route-checkbox');
 
-        let liffId = "2012197408-pR7dX7VG"; // 請替換成您的 LIFF ID
+        // 您的 LIFF ID
+        let liffId = "2012189383-9BF8X2oO"; 
 
         // 初始化 LIFF
         async function initializeLiff() {
             try {
                 await liff.init({ liffId: liffId });
+                if (liff.isInClient() && !liff.isLoggedIn()) {
+                    liff.login();
+                }
             } catch (error) {
-                console.log('LIFF Initialization failed. Standard copy mode will be used.', error);
+                console.error('LIFF 初始化失敗：', error);
             }
         }
         initializeLiff();
 
-        // 當分駐所改變時，重新產生站點核取方框
+        // 當分駐所改變時的處理邏輯
         substationSelect.addEventListener('change', function() {
-            const selectedSubstation = this.value;
+            const selectedVal = this.value;
             stationsContainer.innerHTML = '';
 
-            if (!selectedSubstation || !stationData[selectedSubstation]) {
-                stationsContainer.innerHTML = '<span class="text-gray-400">請先選擇分駐所</span>';
+            if (!selectedVal) {
+                stationsContainer.innerHTML = '<span class="text-gray-400">請先選擇分駐所或值班管理</span>';
+                setPreviewReadOnly(true);
                 updatePreview();
                 return;
             }
 
-            stationData[selectedSubstation].forEach(station => {
+            let targetStations = [];
+            
+            if (selectedVal === "值班管理") {
+                targetStations = allStations; // 不受限，全站點開放
+                setPreviewReadOnly(false);   // 允許編輯預覽文字
+            } else {
+                targetStations = stationData[selectedVal] || [];
+                setPreviewReadOnly(true);    // 恢復唯讀模式
+            }
+
+            // 渲染站點核取方框
+            targetStations.forEach(station => {
                 const label = document.createElement('label');
                 label.className = 'flex items-center space-x-2 py-1 cursor-pointer hover:bg-gray-100 px-1 rounded';
                 
@@ -139,6 +161,20 @@
             updatePreview();
         });
 
+        // 設定預覽框的編輯權限與視覺提示
+        function setPreviewReadOnly(isReadOnly) {
+            previewTextDiv.readOnly = isReadOnly;
+            if (isReadOnly) {
+                previewTextDiv.classList.add('bg-white');
+                previewTextDiv.classList.remove('bg-amber-50', 'border-amber-300');
+                editHint.classList.add('hidden');
+            } else {
+                previewTextDiv.classList.remove('bg-white');
+                previewTextDiv.classList.add('bg-amber-50', 'border-amber-300');
+                editHint.classList.remove('hidden');
+            }
+        }
+
         // 監聽路線與檢查項目變動
         routeCheckboxes.forEach(cb => cb.addEventListener('change', updatePreview));
         checkItemInput.addEventListener('input', updatePreview);
@@ -152,7 +188,7 @@
             const status = document.getElementById('status').value;
 
             if (!substation || checkedStations.length === 0 || checkedRoutes.length === 0) {
-                return "請完整選擇分駐所、起迄站點與路線...";
+                return "請完整選擇分駐所/值班管理、起迄站點與路線...";
             }
 
             const stationString = checkedStations.join('~');
@@ -162,37 +198,43 @@
         }
 
         function updatePreview() {
-            previewTextDiv.textContent = getFormattedText();
+            previewTextDiv.value = getFormattedText();
         }
 
         // 發送到 LINE 群組
         sendBtn.addEventListener('click', async function() {
-            const text = getFormattedText();
-            if (text.startsWith("請完整")) {
-                alert("請完整填寫所有必要欄位（分駐所、起迄站點、路線）！");
+            const text = previewTextDiv.value.trim();
+            if (!text || text.startsWith("請完整")) {
+                alert("請完整填寫欄位或輸入預覽內容！");
                 return;
             }
 
             if (liff.isInClient()) {
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
+
                 if (liff.isApiAvailable('shareTargetPicker')) {
                     try {
-                        await liff.shareTargetPicker([
+                        const res = await liff.shareTargetPicker([
                             {
                                 type: 'text',
                                 text: text
                             }
                         ]);
-                        alert("訊息已成功分享！");
+                        if (res) {
+                            alert("訊息已成功發送至指定的群組！");
+                        }
                     } catch (error) {
-                        alert("分享失敗或取消: " + error);
+                        alert("分享取消或發生錯誤：" + error.message);
                     }
                 } else {
-                    alert("此版本 LINE 不支援分享目標選擇器。");
+                    alert("目前不支援 shareTargetPicker 權限，請確認後台權限與地區設定。");
                 }
             } else {
-                // 非 LINE 環境，執行複製剪貼簿
                 navigator.clipboard.writeText(text).then(() => {
-                    alert("已複製回報文字到剪貼簿！可直接貼上至 LINE 群組。");
+                    alert("已複製回報文字到剪貼簿！請貼上至 LINE 聊天室。");
                 }).catch(err => {
                     alert("複製失敗：" + err);
                 });
@@ -201,8 +243,8 @@
 
         // 複製按鈕
         copyBtn.addEventListener('click', function() {
-            const text = getFormattedText();
-            if (text.startsWith("請完整")) {
+            const text = previewTextDiv.value.trim();
+            if (!text || text.startsWith("請完整")) {
                 alert("目前沒有完整的內容可供複製！");
                 return;
             }
