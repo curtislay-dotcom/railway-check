@@ -80,7 +80,7 @@
             "雙溪所": ["八堵0K", "四腳亭", "瑞芳", "猴硐", "三貂嶺", "雙溪", "貢寮", "福隆", "草嶺南"],
             "礁溪所": ["草嶺南", "大里", "龜山", "頭城", "礁溪", "四城", "宜蘭", "二結", "羅東S/P"],
             "蘇新所": ["羅東S/P", "羅東", "冬山", "蘇澳新", "永樂", "東澳", "南澳", "武塔S/P", "蘇澳~蘇澳新"],
-            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P1"]
+            "和平所": ["武塔S/P", "漢本", "和平", "和仁", "崇德", "崇德S/P"]
         };
 
         const allStations = Object.values(stationData).flat();
@@ -126,7 +126,7 @@
             if (selectedVal === "值班管理") {
                 targetStations = allStations;
                 setDutyMode(true);
-                previewTextDiv.value = "(宜力後巡查匯整第  報)\n";
+                previewTextDiv.value = "(宜力段巡查匯整第  報)\n";
             } else {
                 targetStations = stationData[selectedVal] || [];
                 setDutyMode(false);
@@ -202,7 +202,7 @@
                 routeString = checkedRoutes[0];
             }
 
-            return `${stationString} ${routeString} 電車線設備OK`;
+            return `${stationString} ${routeString} 電車線設備正常`;
         }
 
         // 一般模式的即時預覽更新
